@@ -1,7 +1,12 @@
 <template>
   <li class="tarea">
     <label>
-      <input type="checkbox" v-model="tarea.completada" @change="$emit('toggle', index)" />
+      <!-- Se usa :checked y @change para que el padre actualice -->
+      <input
+        type="checkbox"
+        :checked="tarea.completada"
+        @change="$emit('toggle', index)"
+      />
       <span :class="{ completada: tarea.completada }">{{ tarea.texto }}</span>
     </label>
     <button class="eliminar" @click="$emit('remove', index)">✕</button>

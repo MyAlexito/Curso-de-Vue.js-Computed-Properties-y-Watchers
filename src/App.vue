@@ -1,82 +1,137 @@
 <template>
   <main style="max-width: 720px; margin: 2rem auto; font-family: system-ui, sans-serif;">
-    <h1>Fundamentos: Computed vs Methods</h1>
+    <h1>To-Do List (Vue 3)</h1>
 
-    <!-- Input para nombre -->
-    <label>
-      Nombre:
-      <input v-model="nombre" placeholder="Escribe tu nombre" />
-    </label>
-
-    <!-- Imagen con binding y tamaño ajustado -->
-    <div style="margin-top:1rem;">
-      <img 
-        :alt="`Avatar de ${nombre || 'invitado'}`" 
-        :src="'https://static.vecteezy.com/system/resources/previews/006/431/286/non_2x/hacker-behind-computer-hacking-password-in-laptop-man-in-hood-vector.jpg'"
+        <div class="entrada">
+      <input
+        v-model="nuevaTarea"
+        placeholder="Nueva tarea"
+        @keyup.enter="agregarTarea"
       />
+      <button @click="agregarTarea">Agregar</button>
     </div>
 
-    <!-- Propiedad computada -->
-    <section style="margin-top: 1rem;">
-      <h3>Con propiedad computada (cacheada)</h3>
-      <p>{{ mensajeBienvenida }}</p>
-      <p>{{ mensajeBienvenida }}</p>
-    </section>
+    <p v-if="tareas.length === 0" class="muted">No hay tareas. ¡Agrega la primera!</p>
 
-    <!-- Método -->
-    <section style="margin-top: 1rem;">
-      <h3>Con método (se ejecuta en cada render)</h3>
-      <p>{{ saludoMetodo() }}</p>
-      <p>{{ saludoMetodo() }}</p>
-    </section>
+      <ul v-else class="lista">
+      <TodoItem
+        v-for="(t, i) in tareas"
+        :key="i"
+        :tarea="t"
+        :index="i"
+        @toggle="toggleTarea"
+        @remove="eliminarTarea"
+      />
+    </ul>
 
-    <!-- Contador de renders -->
-    <p style="opacity:.7; margin-top:1rem;">Renders: {{ contadorRenders }}</p>
-    <p style="opacity:.7;">Abre la consola del navegador para ver logs.</p>
+    <p class="resumen">
+      Total: <strong>{{ totalTareas }}</strong> ·
+      Completadas: <strong>{{ tareasCompletadas }}</strong> ·
+      Pendientes: <strong>{{ tareasPendientes }}</strong>
+    </p>
+
+    <button
+      v-if="tareasCompletadas > 0"
+      class="btn-secundario"
+      @click="limpiarCompletadas"
+    >
+      Limpiar completadas
+    </button>
   </main>
 </template>
 
 <script>
+import TodoItem from './components/TodoItem.vue'
+
 export default {
   name: 'App',
+  components: { TodoItem },
   data() {
     return {
-      nombre: '',
-      contadorRenders: 0
+      nuevaTarea: '',
+      tareas: []
+    }
+  },
+  created() {
+    const saved = localStorage.getItem('tareas')
+    if (saved) {
+      try {
+        this.tareas = JSON.parse(saved)
+      } catch (e) {
+        console.warn('No se pudo parsear localStorage, se reinicia lista', e)
+        this.tareas = []
+      }
     }
   },
   computed: {
-    mensajeBienvenida() {
-      console.log('[computed] mensajeBienvenida recalculado');
-      return this.nombre ? `¡Bienvenido, ${this.nombre}!` : 'Bienvenido, invitado';
+    totalTareas() {
+      return this.tareas.length
+    },
+    tareasCompletadas() {
+      return this.tareas.filter(t => t.completada).length
+    },
+    tareasPendientes() {
+      return this.totalTareas - this.tareasCompletadas
+    }
+  },
+  watch: {
+       tareas: {
+      handler(nuevas) {
+        localStorage.setItem('tareas', JSON.stringify(nuevas))
+      },
+      deep: true
     }
   },
   methods: {
-    saludoMetodo() {
-      console.log('[method] saludoMetodo ejecutado');
-      return this.nombre ? `Hola, ${this.nombre}` : 'Hola, invitado';
+    agregarTarea() {
+      const txt = this.nuevaTarea.trim()
+      if (!txt) return
+      this.tareas.push({ texto: txt, completada: false })
+      this.nuevaTarea = ''
+    },
+    toggleTarea(index) {
+      this.tareas[index].completada = !this.tareas[index].completada
+    },
+    eliminarTarea(index) {
+      this.tareas.splice(index, 1)
+    },
+    limpiarCompletadas() {
+      this.tareas = this.tareas.filter(t => !t.completada)
     }
-  },
-  updated() {
-    this.contadorRenders++;
   }
 }
 </script>
 
 <style>
-input {
-  margin-left: .5rem;
-  padding: .4rem .6rem;
-  border: 1px solid #ccc;
-  border-radius: .5rem;
+.entrada {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
 }
-
-img {
-  display: block;
+input {
+  flex: 1;
+  padding: .5rem .7rem;
+  border: 1px solid #ccc;
+  border-radius: .6rem;
+}
+button {
+  padding: .5rem .8rem;
+  border: none;
+  border-radius: .6rem;
+  cursor: pointer;
+}
+.btn-secundario {
   margin-top: .5rem;
-  border-radius: 50%;
-  width: 150px;       /* ancho fijo */
-  height: 150px;      /* alto fijo */
-  object-fit: cover;  /* mantiene proporciones y recorta si es necesario */
+}
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: .5rem 0 0;
+}
+.muted {
+  opacity: .7;
+}
+.resumen {
+  margin-top: 1rem;
 }
 </style>
